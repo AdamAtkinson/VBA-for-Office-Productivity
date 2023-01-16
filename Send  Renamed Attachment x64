@@ -1,0 +1,279 @@
+Option Explicit
+
+ 
+
+#If VBA7 Then
+
+ 
+
+    Declare PtrSafe Sub Sleep Lib "kernel32" ( _
+
+            ByVal dwMilliseconds As Long)
+
+ 
+
+    Declare PtrSafe Function ShowWindow Lib "user32" ( _
+
+            ByVal hwnd As LongPtr, _
+
+            ByVal nCmdShow As Long _
+
+            ) As Long
+
+ 
+
+    Declare PtrSafe Function IsIconic Lib "user32" ( _
+
+            ByVal hwnd As LongPtr _
+
+            ) As Long
+
+ 
+
+    Declare PtrSafe Function FindExecutable Lib "shell32.dll" Alias "FindExecutableA" ( _
+
+            ByVal lpFile As String, _
+
+            ByVal lpDirectory As String, _
+
+            ByVal lpResult As String _
+
+            ) As LongPtr
+
+ 
+
+#Else
+
+ 
+
+    Public Declare Sub Sleep Lib "kernel32" ( _
+
+            ByVal dwMilliseconds As Long)
+
+ 
+
+    Public Declare Function ShowWindow Lib "user32" ( _
+
+            ByVal hWnd As Long, _
+
+            ByVal nCmdShow As Long _
+
+            ) As Long
+
+ 
+
+    Public Declare Function IsIconic Lib "user32.dll" ( _
+
+            ByVal hWnd As Long) _
+
+            As Long
+
+ 
+
+    Public Declare Function FindExecutable Lib "shell32.dll" Alias "FindExecutableA" ( _
+
+            ByVal lpFile As String, _
+
+            ByVal lpDirectory As String, _
+
+            ByVal lpResult As String _
+
+            ) As Long
+
+ 
+
+#End If
+
+ 
+
+Private xlApp As Object
+
+ 
+
+Private Sub CreateExcelObject()
+
+    Set xlApp = CreateObject("Excel.Application")
+
+    xlApp.Application.Visible = False
+
+End Sub
+
+Private Sub DestroyExcelObject()
+
+    xlApp.Application.Quit
+
+    Set xlApp = Nothing
+
+End Sub
+
+ 
+
+Private Function SelectFolder() As String
+
+    Dim fldr As FileDialog
+
+    Set fldr = xlApp.FileDialog(msoFileDialogFolderPicker)
+
+    fldr.Show
+
+    SelectFolder = fldr.SelectedItems.Item(1)
+
+End Function
+
+ 
+
+ 
+
+Sub AttachAndListFolderContents()
+
+ 
+
+    CreateExcelObject
+
+   
+
+    Dim targetFolder As String
+
+    targetFolder = SelectFolder
+
+   
+
+    DestroyExcelObject
+
+   
+
+    
+
+    
+
+ 'Creates a new email item and modifies its properties
+
+Dim objMail As Outlook.MailItem
+
+ 'Create email item
+
+Set objMail = Application.CreateItem(olMailItem)
+
+    objMail.Display
+
+ 
+
+    Dim FileSystem As Object
+
+    Set FileSystem = CreateObject("Scripting.FileSystemObject")
+
+    Dim folder As Object
+
+    Set folder = FileSystem.GetFolder(targetFolder)
+
+ 
+
+    Dim file As Object
+
+ 
+
+    Dim fileList As String
+
+ 
+
+    For Each file In folder.Files
+
+        objMail.Attachments.Add file.Path
+
+        fileList = fileList & file.Name & vbNewLine
+
+    Next
+
+ 
+
+    objMail.Subject = "Approval Follow Up"
+
+    objMail.Body = fileList
+
+' With objMail
+
+' 'Set body format to HTML
+
+' .BodyFormat = olFormatHTML
+
+' .HTMLBody = "<HTML><H2>The body of this message will appear in HTML.</H2><BODY> Please enter the message text here. </BODY></HTML>"
+
+' .Display
+
+' End With
+
+End Sub
+
+ 
+
+Sub ListFileNames()
+
+    Dim FolderName As String
+
+    FolderName = "C:\VBA" ' "C:\VBA\cafe"
+
+    DoFolders FolderName
+
+End Sub
+
+ 
+
+ 
+
+ 
+
+ 
+
+Sub DoFolders(HostFolder As String)
+
+    Dim FileSystem As Object
+
+    Set FileSystem = CreateObject("Scripting.FileSystemObject")
+
+    DoFolder FileSystem.GetFolder(HostFolder)
+
+End Sub
+
+Sub DoFolder(folder As Object)
+
+    Dim i As Long
+
+    Dim SubFolder As Object
+
+    For Each SubFolder In folder.SubFolders
+
+        DoFolder SubFolder
+
+    Next
+
+    Dim file As Object
+
+ 
+
+    For Each file In folder.Files
+
+        DoFile file
+
+    Next
+
+End Sub
+
+Sub DoFile(file As Object)
+
+    With file
+
+        dbP .ParentFolder.Path, .Name
+
+    End With
+
+End Sub
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
