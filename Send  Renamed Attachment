@@ -1,0 +1,413 @@
+Option Explicit
+
+ 
+
+ 
+
+Private Const DBLLN As String = vbNewLine & vbNewLine
+
+ 
+
+ 
+
+ 
+
+Sub RenameAttachments()
+
+    Dim AttachedFile As Outlook.Attachment
+
+    Dim sourceMailItem As Outlook.MailItem
+
+    Dim allAttachments As Outlook.Attachments
+
+    Dim AttachmentCount As Long
+
+    Dim attachmentDisplayName As String
+
+    Dim attachmentFileExtension As String
+
+    Dim fullAttachmentFilename As String
+
+    Dim i As Long
+
+    Dim newAttachmentFilename As String
+
+    Dim renameFileDialogTitle As String
+
+    Dim temporarySavePath As String
+
+    Dim thisInspector As Outlook.Inspector
+
+    Dim signaturePath As String
+
+    Dim newSignature As String
+
+    Dim oldSignature As String
+
+    Dim messageBody As String
+
+    Dim destinationMailItem As Outlook.MailItem
+
+   
+
+    If GetTheDesiredMailItemInEditMode(destinationMailItem, False, "Move attachments to this email?", "Active Email Composition Detected") Then
+
+ 
+
+        If Application.ActiveExplorer.Selection.Count > 0 Then
+
+            If TypeOf Application.ActiveExplorer.Selection.Item(1) Is Outlook.MailItem Then
+
+                Set sourceMailItem = Application.ActiveExplorer.Selection.Item(1)
+
+                Set allAttachments = sourceMailItem.Attachments
+
+                AttachmentCount = allAttachments.Count
+
+            End If
+
+        End If
+
+       
+
+        If AttachmentCount = 0 Then
+
+            MsgBox "How can you rename and forward an attachment without an attachment?", vbCritical, "Unable to Continue"
+
+            Exit Sub
+
+        End If
+
+   
+
+ 
+
+        If destinationMailItem Is Nothing Then
+
+            Set destinationMailItem = sourceMailItem.Forward
+
+            For Each AttachedFile In destinationMailItem.Attachments
+
+                AttachedFile.Delete
+
+            Next
+
+        End If
+
+   
+
+ 
+
+        destinationMailItem.Display
+
+        temporarySavePath = Environ("LOCALAPPDATA") & "\Temp\"
+
+        If Not CBool(Len(Dir(temporarySavePath, vbDirectory))) Then MkDir temporarySavePath
+
+       
+
+        For Each AttachedFile In allAttachments
+
+            attachmentFileExtension = Right(AttachedFile.FileName, Len(AttachedFile.FileName) - InStrRev(AttachedFile.FileName, ".") + 1)
+
+            attachmentDisplayName = Replace(AttachedFile.FileName, attachmentFileExtension, vbNullString)
+
+            renameFileDialogTitle = "Rename Attachment " & AttachedFile.Index & " of " & AttachmentCount
+
+            newAttachmentFilename = InputBox("Click 'Cancel' to keep original name." & DBLLN & "New name for:" & vbNewLine & attachmentDisplayName, renameFileDialogTitle)
+
+           
+
+            If CBool(Len(newAttachmentFilename)) Then
+
+                fullAttachmentFilename = temporarySavePath & newAttachmentFilename & attachmentFileExtension
+
+            Else
+
+                fullAttachmentFilename = temporarySavePath & AttachedFile.FileName
+
+            End If
+
+           
+
+            AttachedFile.SaveAsFile fullAttachmentFilename
+
+            destinationMailItem.Attachments.Add fullAttachmentFilename
+
+            Kill fullAttachmentFilename
+
+        Next
+
+       
+
+        If InStr(1, Left(destinationMailItem.Subject, 4), "FW: ") Then destinationMailItem.Subject = Right(destinationMailItem.Subject, Len(destinationMailItem.Subject) - 4)
+
+       
+
+        
+
+    End If
+
+End Sub
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+Function GetTheDesiredMailItemInEditMode(ByRef returnMailItem As Outlook.MailItem, _
+
+                       Optional ByVal failIfNotFound As Boolean, _
+
+                       Optional ByVal promptText As String, _
+
+                       Optional ByVal promptTitle As String) _
+
+                       As Boolean
+
+ 
+
+    If Not CBool(Len(promptText)) Then promptText = "Work with this email?"
+
+    If Not CBool(Len(promptTitle)) Then promptTitle = "Cycling Through Open Email Edit Windows"
+
+ 
+
+    Dim mailItemArray() As Outlook.MailItem
+
+    ReDim mailItemArray(0 To 0)
+
+   
+
+    Dim thisInspector As Outlook.Inspector
+
+    For Each thisInspector In Application.Inspectors
+
+        If TypeOf thisInspector.CurrentItem Is Outlook.MailItem Then
+
+            With thisInspector
+
+                If Not .CurrentItem.Sent Then
+
+                    ReDim Preserve mailItemArray(0 To UBound(mailItemArray) + 1)
+
+                    Set mailItemArray(UBound(mailItemArray)) = thisInspector.CurrentItem
+
+                End If
+
+            End With
+
+        End If
+
+    Next thisInspector
+
+ 
+
+    Dim useNewEmail As Boolean
+
+    Dim functionFailed As Boolean
+
+    Dim returnSuccess As Boolean
+
+    If UBound(mailItemArray) > 0 Then
+
+        If UBound(mailItemArray) > 1 Then
+
+            Select Case MsgBox("You are composing " & UBound(mailItemArray) & " emails.  Do you want to work with any of them?", vbYesNoCancel, "Multiple Email Compositions Detected")
+
+                Case vbYes
+
+                    'do nothing
+
+                Case vbNo
+
+                    useNewEmail = True
+
+                Case vbCancel
+
+                    functionFailed = True
+
+            End Select
+
+        End If
+
+       
+
+        If Not functionFailed And Not useNewEmail Then
+
+            Dim i As Long
+
+            For i = 1 To UBound(mailItemArray)
+
+                mailItemArray(i).Display
+
+                Select Case MsgBox(mailItemArray(i).Subject & DBLLN & promptText, vbYesNoCancel, promptTitle)
+
+                    Case vbYes
+
+                        Set mailItemArray(0) = mailItemArray(i)
+
+                        useNewEmail = False
+
+                        Exit For
+
+                    Case vbNo
+
+                        useNewEmail = True
+
+                    Case vbCancel
+
+                        functionFailed = True
+
+                        Exit For
+
+                End Select
+
+            Next i
+
+           
+
+            If Not functionFailed And Not useNewEmail Then
+
+                If mailItemArray(0) Is Nothing Then
+
+                    Select Case MsgBox("Cycled through all open compositions, create a new email?", vbYesNo, "No Emails Chosen")
+
+                        Case vbYes
+
+                            useNewEmail = True
+
+                        Case vbNo
+
+                            functionFailed = True
+
+                    End Select
+
+                End If
+
+            End If
+
+           
+
+        End If
+
+    Else
+
+        If failIfNotFound Then
+
+            MsgBox "Could not find an email being edited."
+
+        Else
+
+            returnSuccess = True
+
+        End If
+
+    End If
+
+ 
+
+   
+
+    If functionFailed Then
+
+        Set returnMailItem = Nothing
+
+        returnSuccess = False
+
+    Else
+
+        If useNewEmail Then
+
+            Set returnMailItem = Nothing
+
+            returnSuccess = True
+
+        Else
+
+            If Not mailItemArray(0) Is Nothing Then
+
+                Set returnMailItem = mailItemArray(0)
+
+                returnSuccess = True
+
+            End If
+
+        End If
+
+    End If
+
+ 
+
+    GetTheDesiredMailItemInEditMode = returnSuccess
+
+ 
+
+End Function
+
+ 
+
+ 
+
+ 
+
+' sends text to the debug window
+
+' accepts multiple arguments using a comma delimiter
+
+Public Sub dbP(ParamArray condenseStrings() As Variant)
+
+    Dim printStrings() As Variant
+
+    If VarType(condenseStrings(0)) >= vbArray Then
+
+        printStrings = condenseStrings(0)
+
+    Else
+
+        printStrings = condenseStrings
+
+    End If
+
+    Dim delimString As String: delimString = " ; "
+
+    Debug.Print Join(printStrings, delimString)
+
+End Sub
+
+'same as dbP but adds a time and date stamp
+
+Public Sub dbPL(ParamArray conditionalDisplayStrings() As Variant)
+
+    #If CCC_dbPL Then
+
+        'expand and shift right to append time and date
+
+        Dim newArray() As Variant
+
+        ReDim newArray(0 To UBound(conditionalDisplayStrings) + 1)
+
+        newArray(0) = Now
+
+        Dim i As Long
+
+        For i = UBound(newArray) To 1 Step -1
+
+            newArray(i) = conditionalDisplayStrings(i - 1)
+
+        Next i
+
+        dbP newArray
+
+    #End If
+
+End Sub
+
+ 
+
+ 
