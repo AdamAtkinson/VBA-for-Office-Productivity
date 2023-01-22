@@ -7,37 +7,27 @@ Option Explicit
  
 
     Declare PtrSafe Sub Sleep Lib "kernel32" ( _
-
             ByVal dwMilliseconds As Long)
 
  
 
     Declare PtrSafe Function ShowWindow Lib "user32" ( _
-
             ByVal hwnd As LongPtr, _
-
             ByVal nCmdShow As Long _
-
             ) As Long
 
  
 
     Declare PtrSafe Function IsIconic Lib "user32" ( _
-
             ByVal hwnd As LongPtr _
-
             ) As Long
 
  
 
     Declare PtrSafe Function FindExecutable Lib "shell32.dll" Alias "FindExecutableA" ( _
-
             ByVal lpFile As String, _
-
             ByVal lpDirectory As String, _
-
             ByVal lpResult As String _
-
             ) As LongPtr
 
  
@@ -47,37 +37,27 @@ Option Explicit
  
 
     Public Declare Sub Sleep Lib "kernel32" ( _
-
             ByVal dwMilliseconds As Long)
 
  
 
     Public Declare Function ShowWindow Lib "user32" ( _
-
             ByVal hWnd As Long, _
-
             ByVal nCmdShow As Long _
-
             ) As Long
 
  
 
     Public Declare Function IsIconic Lib "user32.dll" ( _
-
             ByVal hWnd As Long) _
-
             As Long
 
  
 
     Public Declare Function FindExecutable Lib "shell32.dll" Alias "FindExecutableA" ( _
-
             ByVal lpFile As String, _
-
             ByVal lpDirectory As String, _
-
             ByVal lpResult As String _
-
             ) As Long
 
  
