@@ -161,13 +161,9 @@ End Sub
  
 
 Function GetTheDesiredMailItemInEditMode(ByRef returnMailItem As Outlook.MailItem, _
-
                        Optional ByVal failIfNotFound As Boolean, _
-
                        Optional ByVal promptText As String, _
-
                        Optional ByVal promptTitle As String) _
-
                        As Boolean
 
  
